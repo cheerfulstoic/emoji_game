@@ -35,7 +35,7 @@ defmodule EmojiGame.Game do
   @impl true
   def handle_continue(:start_actors, state) do
     Task.Supervisor.async_nolink(EmojiGame.TaskSupervisor, fn ->
-      for i <- 1..5_000 do
+      for i <- 1..100 do
       Process.sleep(10)
         if(rem(i,500) == 0, do: IO.inspect(i, label: :i))
         # TODO: Change so that there is a function in `EmojiGame.Actor` which does the below
@@ -75,7 +75,7 @@ defmodule EmojiGame.Game do
 
   defp populate() do
     # TREES!!!!
-    Enum.reduce(0..5_000, %{}, fn _index, map ->
+    Enum.reduce(0..1_000_000, %{}, fn _index, map ->
       x = Enum.random(0..@dimension)
       y = Enum.random(0..@dimension)
 
@@ -156,23 +156,20 @@ defmodule EmojiGame.Game do
 
   @section_radius 10
   defp section_for(state, {x, y}) do
-    actor_positions = Actors.all_positions(state.actors)
+    indicator_positions = Actors.indicator_positions(state.actors)
 
     Enum.reduce((y - @section_radius)..(y + @section_radius - 1), %{}, fn y, result ->
       Enum.reduce((x - @section_radius)..(x + @section_radius - 1), result, fn x, result ->
-        value = at_position(state.map, actor_positions, {x, y})
+        value =
+          if Map.has_key?(indicator_positions, {x, y}) do
+            indicator_positions[{x, y}]
+          else
+            Map.get(state.map, {x, y}, nil)
+          end
 
         if(value, do: Map.put(result, {x, y}, value), else: result)
       end)
     end)
-  end
-
-  defp at_position(map, actor_positions, {x, y}) do
-    if MapSet.member?(actor_positions, {x, y}) do
-      :actor
-    else
-      Map.get(map, {x, y}, nil)
-    end
   end
 
   @impl true

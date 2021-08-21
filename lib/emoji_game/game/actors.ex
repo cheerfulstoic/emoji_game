@@ -34,11 +34,8 @@ defmodule EmojiGame.Game.Actors do
 
   # def actor_registered?(actors, pid), do: Map.has_key?(actors, pid)
 
-  def all_positions(actors) do
-    actors
-    |> Map.values()
-    |> Enum.map(& &1.position)
-    |> MapSet.new()
+  def indicator_positions(actors) do
+    Map.new(actors, fn {pid, details} -> {details.position, details[:options][:indicator] || :actor} end)
   end
 
   def actor_positions(actors) do

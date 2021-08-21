@@ -14,7 +14,7 @@ defmodule EmojiGame.Actor do
 
   @impl true
   def handle_continue(:register, position) do
-    {:ok, true} = EmojiGame.Game.register(position, %{})
+    {:ok, true} = EmojiGame.Game.register(position, %{indicator: :actor})
 
     ms = trunc(:rand.uniform() * 2000) + 1000
     Process.send_after(self(), :move, ms)
@@ -26,8 +26,6 @@ defmodule EmojiGame.Actor do
 
   @impl true
   def handle_info(:move, {x, y}) do
-    # IO.inspect("Moving")
-
     new_x = x + Enum.random(@move_shift_amounts)
     new_y = y + Enum.random(@move_shift_amounts)
 

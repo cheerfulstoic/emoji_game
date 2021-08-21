@@ -29,7 +29,8 @@ defmodule EmojiGameWeb.Components.Board do
               emoji =
                 case cell do
                   :tree -> "🌳"
-                  :actor -> "😁"
+                  :player -> "😁"
+                  :actor -> "🤖"
                   other -> other
                 end
             %>

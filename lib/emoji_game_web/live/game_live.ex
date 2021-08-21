@@ -5,7 +5,7 @@ defmodule EmojiGameWeb.GameLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, true} = EmojiGame.Game.register({11, 11}, %{return_view_update: true})
+    {:ok, true} = EmojiGame.Game.register({11, 11}, %{return_view_update: true, indicator: :player})
 
     {:ok,
       socket
@@ -42,12 +42,14 @@ defmodule EmojiGameWeb.GameLive do
           |> assign(:position, new_position)}
     end
   end
+
   @impl true
   def handle_event("move", %{"key" => other}, socket) do
     {:noreply, socket}
   end
 
 
+  @impl true
   def handle_info({:view_update, positions}, socket) do
     {:noreply,
       socket
