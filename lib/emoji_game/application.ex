@@ -9,7 +9,7 @@ defmodule EmojiGame.Application do
     children = [
       {TelemetryMetricsStatsd, EmojiGameWeb.Telemetry.metrics_statsd_options()},
 
-      {DynamicSupervisor, strategy: :one_for_one, name: EmojiGame.ActorSupervisor},
+      {DynamicSupervisor, strategy: :one_for_one, name: EmojiGame.ObjectSupervisor},
       {Task.Supervisor, name: EmojiGame.TaskSupervisor},
 
       EmojiGame.Game,

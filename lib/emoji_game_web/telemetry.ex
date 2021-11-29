@@ -23,7 +23,7 @@ defmodule EmojiGameWeb.Telemetry do
     [
       # Game Metrics
       summary("emoji_game.game.queue.length"),
-      summary("emoji_game.actor.move_time.stop.duration", unit: {:native, :millisecond}),
+      summary("emoji_game.actor.move_time.stop.duration", reporter_options: [prune_threshold: 50] ,unit: {:native, :millisecond}),
 
       # Phoenix Metrics
       summary("phoenix.endpoint.stop.duration",

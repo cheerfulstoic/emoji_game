@@ -48,4 +48,10 @@ defmodule EmojiGame.Actor do
 
     {:noreply, state}
   end
+
+  @impl true
+  def handle_info(:despawn, state) do
+    IO.puts("ACTOR DESPAWNING!")
+    {:stop, :normal, state}
+  end
 end

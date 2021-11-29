@@ -1,9 +1,7 @@
 defmodule EmojiGame.Game do
   use GenServer
 
-  alias EmojiGame.Game.Actors
-
-  @dimension 1_000
+  alias EmojiGame.Game.{Actors, Positions}
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
@@ -29,59 +27,39 @@ defmodule EmojiGame.Game do
 
     Process.send_after(self(), :update_players, 100)
 
-    {:ok, %{map: populate(), actors: Actors.new()}, {:continue, :start_actors}}
+    {:ok, %{positions: Positions.new() |> Positions.randomly_populate(:tree, 80_000), actors: Actors.new()}, {:continue, :start_actors}}
   end
 
   @impl true
   def handle_continue(:start_actors, state) do
     Task.Supervisor.async_nolink(EmojiGame.TaskSupervisor, fn ->
-      for i <- 1..100 do
-      Process.sleep(10)
+      for i <- 1..10 do
+        Process.sleep(10)
         if(rem(i,500) == 0, do: IO.inspect(i, label: :i))
-        # TODO: Change so that there is a function in `EmojiGame.Actor` which does the below
-        {:ok, _} = DynamicSupervisor.start_child(
-          EmojiGame.ActorSupervisor,
-          %{start: {EmojiGame.Actor, :start_link, [nil]}, id: :"actor#{i}"}
-        )
+
+        EmojiGame.ObjectSupervisor.spawn_actor()
       end
       IO.puts("DONE WITH ACTORS!")
     end)
-
 
     {:noreply, state}
   end
 
   # If the task succeeds...
   def handle_info({ref, result}, state) do
-    IO.puts("SUCCESS!")
     # The task succeed so we can cancel the monitoring and discard the DOWN message
     Process.demonitor(ref, [:flush])
 
     # {url, state} = pop_in(state.tasks[ref])
-    # IO.puts "Got #{inspect(result)} for URL #{inspect url}"
     {:noreply, state}
   end
 
   # If the task fails...
   def handle_info({:DOWN, ref, _, _, reason}, state) do
-    IO.puts("DOWN")
     # {url, state} = pop_in(state.tasks[ref])
-    # IO.puts "URL #{inspect url} failed with reason #{inspect(reason)}"
     {:noreply, state}
   end
 
-
-
-
-  defp populate() do
-    # TREES!!!!
-    Enum.reduce(0..1_000_000, %{}, fn _index, map ->
-      x = Enum.random(0..@dimension)
-      y = Enum.random(0..@dimension)
-
-      Map.put(map, {x, y}, :tree)
-    end)
-  end
 
 
   @impl true
@@ -105,9 +83,24 @@ defmodule EmojiGame.Game do
     # Will this cause problems in responding?
     report_metrics()
 
+    # TODO: Remove pid from previous position (if exists)
+    # TODO: Add pid to new position
+    # TODO: When two things are in the same position, send messages to pids about collision
+    old_position = Actors.get_position(state.actors, from_pid)
+
     case Actors.update_position(state.actors, from_pid, new_position) do
       {:ok, actors} ->
-        state = Map.put(state, :actors, actors)
+
+        state =
+          state
+          |> Map.put(:positions, Positions.move_item(state.positions, old_position, new_position, from_pid))
+          |> Map.put(:actors, actors)
+
+        pids =
+          Positions.get_items(state.positions, new_position)
+          |> Enum.filter(&is_pid/1)
+
+        Actors.register_conflicts(actors, pids)
 
         send_view_update_to(state, from_pid)
 
@@ -116,21 +109,6 @@ defmodule EmojiGame.Game do
       {:error, message} ->
         {:reply, {:error, message}, state}
     end
-  end
-
-  @impl true
-  def handle_continue(:start_actors, state) do
-    Task.Supervisor.async_nolink(EmojiGame.TaskSupervisor, fn ->
-      for i <- 1..13_000 do
-        {:ok, _} = DynamicSupervisor.start_child(
-          EmojiGame.ActorSupervisor,
-          %{start: {EmojiGame.Actor, :start_link, [nil]}, id: :"actor#{i}"}
-        )
-      end
-    end)
-
-
-    {:noreply, state}
   end
 
   def handle_info(:update_players, state) do
@@ -156,16 +134,24 @@ defmodule EmojiGame.Game do
 
   @section_radius 10
   defp section_for(state, {x, y}) do
-    indicator_positions = Actors.indicator_positions(state.actors)
+    # indicator_positions = Actors.indicator_positions(state.actors)
 
     Enum.reduce((y - @section_radius)..(y + @section_radius - 1), %{}, fn y, result ->
       Enum.reduce((x - @section_radius)..(x + @section_radius - 1), result, fn x, result ->
         value =
-          if Map.has_key?(indicator_positions, {x, y}) do
-            indicator_positions[{x, y}]
-          else
-            Map.get(state.map, {x, y}, nil)
+          case state.positions
+               |> Positions.get_items({x, y})
+               |> Enum.find(&is_pid/1) do
+            nil -> nil
+            pid -> Actors.get_indicator(state.actors, pid)
           end
+
+        # value =
+          # if Map.has_key?(indicator_positions, {x, y}) do
+          #   indicator_positions[{x, y}]
+          # else
+          #   Positions.get_item(state.positions, {x, y})
+          # end
 
         if(value, do: Map.put(result, {x, y}, value), else: result)
       end)
@@ -173,8 +159,11 @@ defmodule EmojiGame.Game do
   end
 
   @impl true
-  def handle_info({:EXIT, pid, _reason}, state) do
-    {:noreply, Map.update!(state, :actors, & Map.delete(&1, pid))}
+  def handle_info({:EXIT, pid, reason}, state) do
+    position = Actors.get_position(state.actors, pid)
+    positions = Positions.remove_item(state.positions, position, pid)
+
+    {:noreply, Map.put(state, :positions, positions)}
   end
 
   # Helpers
@@ -188,7 +177,6 @@ defmodule EmojiGame.Game do
       %{length: length},
       %{ }
     )
-
   end
 
 end

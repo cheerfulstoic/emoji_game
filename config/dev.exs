@@ -16,7 +16,7 @@ config :emoji_game, EmojiGame.Repo,
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
 config :emoji_game, EmojiGameWeb.Endpoint,
-  http: [port: 4001],
+  http: [port: {:system, "PORT"}],
   debug_errors: true,
   code_reloader: true,
   check_origin: false,

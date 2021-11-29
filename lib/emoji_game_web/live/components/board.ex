@@ -17,42 +17,45 @@ defmodule EmojiGameWeb.Components.Board do
     dimension = @dimension
     cell_count = @dimension * @dimension
 
-    ~L"""
-    <% {x_pos, y_pos} = @position %>
-    <div id="board" phx-window-keydown="move">
-      <% # hard-code 21 for now.  Need to adjust based on game server %>
-      <%= for y <- (y_pos-10..y_pos+10) do %>
-        <%= for x <- (x_pos-10..x_pos+10) do %>
-          <% cell = @positions[{x, y}] %>
-          <div class="cell" style="grid-column-start: <%= x - (x_pos - 10) + 1 %>">
-            <%
-              emoji =
-                case cell do
-                  :tree -> "🌳"
-                  :player -> "😁"
-                  :actor -> "🤖"
-                  other -> other
-                end
-            %>
-            <%= emoji %>
-          </div>
+    ~H"""
+    <div>
+      <% {x_pos, y_pos} = @position %>
+      <div id="board" phx-window-keydown="keydown" phx-window-keyup="keyup">
+        <% # hard-code 21 for now.  Need to adjust based on game server %>
+        <%= for y <- (y_pos-10..y_pos+10) do %>
+          <%= for x <- (x_pos-10..x_pos+10) do %>
+            <% cell = @positions[{x, y}] %>
+            <div class="cell" style={"grid-column-start: #{x - (x_pos - 10) + 1}"}>
+              <%
+                emoji =
+                  case cell do
+                    :tree -> "🌳"
+                    :player -> "😁"
+                    :actor -> "🤖"
+                    :paint -> "🦠"
+                    other -> other
+                  end
+              %>
+              <%= emoji %>
+            </div>
+          <% end %>
         <% end %>
-      <% end %>
-    </div>
+      </div>
 
-    <style>
-    #board {
-      display: grid;
-      grid-template-columns: repeat(<%= dimension %>, 24px);
-      background-color: #BBB;
-    }
-    .cell {
-      border: 1px solid purple;
-      width: 24px;
-      height: 24px;
-}
-    }
-    </style>
+      <style>
+      #board {
+        display: grid;
+        grid-template-columns: repeat(<%= dimension %>, 24px);
+        background-color: #BBB;
+      }
+      .cell {
+        border: 1px solid purple;
+        width: 24px;
+        height: 24px;
+  }
+      }
+      </style>
+    </div>
     """
   end
 end
